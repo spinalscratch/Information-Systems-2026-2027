@@ -163,14 +163,25 @@ Rules used (from the lecture)
    has no customer number, so a new identifier is added), and Order keeps
    only the foreign key.
 
+   Customer_tmp (CustID, Name, Phone, Address, City, Country)
+   The field "Hanoi, Vietnam" holds two values (city and country), so it is
+   split. Then there is a second transitive dependency:
+      CustID -> City -> Country
+   (the country can be inferred from the city, like in the lecture's
+   CityCountry example). City becomes a table with its own key CityID
+   (city names are not unique worldwide, e.g. there are many cities called
+   "Springfield").
+
    Final 3NF schema (PK in [ ], FK marked with *):
 
-   Customer         ([CustID], Name, Phone, Address, City)
+   City             ([CityID], Name, Country)
+   Customer         ([CustID], Name, Phone, Address, CityID*)
    Order            ([OrderID], OrderDate, CustID*)
    Product          ([ProdID], Description, Price)
    OrderProductList ([OrderID*, ProdID*], Quantity)
 
    Check:
+   - City: Name, Country depend only on CityID                   3NF
    - Customer: every column depends only on CustID               3NF
    - Order: OrderDate, CustID depend only on OrderID              3NF
    - Product: Description, Price depend only on ProdID            3NF
@@ -178,6 +189,16 @@ Rules used (from the lecture)
 
  Diagram
  -------
+   +--------------+
+   |     City     |
+   |--------------|
+   | CityID    PK |
+   | Name         |
+   | Country      |
+   +--------------+
+          | 1
+          |
+          | n
    +--------------+         +---------------+
    |   Customer   |         |     Order     |
    |--------------|  1    n |---------------|
@@ -185,7 +206,7 @@ Rules used (from the lecture)
    | Name         |         | OrderDate     |
    | Phone        |         | CustID     FK |
    | Address      |         +---------------+
-   | City         |                 | 1
+   | CityID    FK |                 | 1
    +--------------+                 |
                                     | n
    +--------------+         +--------------------+
@@ -202,12 +223,19 @@ Rules used (from the lecture)
 
  The data in 3NF
  ---------------
+   City
+   +--------+-------+---------+
+   | CityID | Name  | Country |
+   +--------+-------+---------+
+   |      1 | Hanoi | Vietnam |
+   +--------+-------+---------+
+
    Customer
-   +--------+----------------+-------------------+--------------------+----------------+
-   | CustID | Name           | Phone             | Address            | City           |
-   +--------+----------------+-------------------+--------------------+----------------+
-   |      1 | Tran Giang Son | +84-4 37 91 69 60 | 18 Hoang Quoc Viet | Hanoi, Vietnam |
-   +--------+----------------+-------------------+--------------------+----------------+
+   +--------+----------------+-------------------+--------------------+--------+
+   | CustID | Name           | Phone             | Address            | CityID |
+   +--------+----------------+-------------------+--------------------+--------+
+   |      1 | Tran Giang Son | +84-4 37 91 69 60 | 18 Hoang Quoc Viet |      1 |
+   +--------+----------------+-------------------+--------------------+--------+
 
    Order
    +---------+------------+--------+
@@ -234,6 +262,18 @@ Rules used (from the lecture)
    The CREATE TABLE / INSERT commands are in Report.9.Norm.sql (tested on
    MySQL 8). ORDER is a reserved word, so the table is written `Order`
    with backticks. The original form is rebuilt with joins:
+
+   mysql> SELECT o.OrderID, o.OrderDate, c.Name, c.Phone, c.Address,
+       ->        CONCAT(ci.Name, ', ', ci.Country) AS City
+       -> FROM `Order` o
+       -> JOIN Customer c ON c.CustID  = o.CustID
+       -> JOIN City ci    ON ci.CityID = c.CityID
+       -> WHERE o.OrderID = 'on7126';
+   +---------+------------+----------------+-------------------+--------------------+----------------+
+   | OrderID | OrderDate  | Name           | Phone             | Address            | City           |
+   +---------+------------+----------------+-------------------+--------------------+----------------+
+   | on7126  | 2016-07-11 | Tran Giang Son | +84-4 37 91 69 60 | 18 Hoang Quoc Viet | Hanoi, Vietnam |
+   +---------+------------+----------------+-------------------+--------------------+----------------+
 
    mysql> SELECT l.ProdID, p.Description, l.Quantity, p.Price
        -> FROM OrderProductList l JOIN Product p ON p.ProdID = l.ProdID

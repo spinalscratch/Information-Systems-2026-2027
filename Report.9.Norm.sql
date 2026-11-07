@@ -8,13 +8,21 @@ DROP DATABASE IF EXISTS orderform;
 CREATE DATABASE orderform;
 USE orderform;
 
+CREATE TABLE City (
+    CityID   INT          NOT NULL AUTO_INCREMENT,
+    Name     VARCHAR(100) NOT NULL,
+    Country  VARCHAR(100) NOT NULL,
+    PRIMARY KEY (CityID)
+);
+
 CREATE TABLE Customer (
     CustID   INT          NOT NULL AUTO_INCREMENT,
     Name     VARCHAR(100) NOT NULL,
     Phone    VARCHAR(30),
     Address  VARCHAR(200),
-    City     VARCHAR(100),
-    PRIMARY KEY (CustID)
+    CityID   INT,
+    PRIMARY KEY (CustID),
+    FOREIGN KEY (CityID) REFERENCES City (CityID)
 );
 
 CREATE TABLE Product (
@@ -42,8 +50,11 @@ CREATE TABLE OrderProductList (
 );
 
 -- data of the order form
-INSERT INTO Customer (CustID, Name, Phone, Address, City) VALUES
-    (1, 'Tran Giang Son', '+84-4 37 91 69 60', '18 Hoang Quoc Viet', 'Hanoi, Vietnam');
+INSERT INTO City (CityID, Name, Country) VALUES
+    (1, 'Hanoi', 'Vietnam');
+
+INSERT INTO Customer (CustID, Name, Phone, Address, CityID) VALUES
+    (1, 'Tran Giang Son', '+84-4 37 91 69 60', '18 Hoang Quoc Viet', 1);
 
 INSERT INTO Product (ProdID, Description, Price) VALUES
     ('P101', 'Intel i7 6700K',            349),
@@ -63,9 +74,11 @@ INSERT INTO OrderProductList (OrderID, ProdID, Quantity) VALUES
     ('on7126', 'P107', 1);
 
 -- rebuild the original order form from the 3NF tables
-SELECT o.OrderID, o.OrderDate, c.Name, c.Phone, c.Address, c.City
+SELECT o.OrderID, o.OrderDate, c.Name, c.Phone, c.Address,
+       CONCAT(ci.Name, ', ', ci.Country) AS City
 FROM `Order` o
-JOIN Customer c ON c.CustID = o.CustID
+JOIN Customer c ON c.CustID  = o.CustID
+JOIN City ci    ON ci.CityID = c.CityID
 WHERE o.OrderID = 'on7126';
 
 SELECT l.ProdID, p.Description, l.Quantity, p.Price
