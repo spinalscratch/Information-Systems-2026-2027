@@ -1,7 +1,3 @@
--- =====================================================================
--- Labwork 3 - SQL on the "employees" database (datacharmer/test_db)
--- Run with:   mysql -u root -p -t employees < Report.3.SQL.sql
--- =====================================================================
 USE employees;
 
 -- ---------------------------------------------------------------------
@@ -19,13 +15,6 @@ SELECT first_name, last_name FROM employees;
 
 -- Q4. Names of all departments                       ( pi dept_name (departments) )
 SELECT dept_name FROM departments;
-
--- ---------------------------------------------------------------------
--- Part 2 - queries with joins
--- Note: dept_emp keeps the whole history, so "working in X" here means
--- "has worked in X at some point". To restrict to current staff add
---     AND de.to_date = '9999-01-01'
--- ---------------------------------------------------------------------
 
 -- Q5. Full names of employees working in the "Sales" department
 SELECT DISTINCT e.first_name, e.last_name
