@@ -13,3 +13,4 @@ Labworks
 | 2 | Relational algebra | [Report.2.RelationalAlgebra.txt](Report.2.RelationalAlgebra.txt) |
 | 3 | SQL queries and department merge | [Report.3.SQL.txt](Report.3.SQL.txt), [Report.3.SQL.sql](Report.3.SQL.sql) |
 | 4a | Built-in (aggregate) functions | [Report.4a.Functions.txt](Report.4a.Functions.txt), [Report.4a.Functions.sql](Report.4a.Functions.sql) |
+| 9 | Normalization (employees DB, order form to 3NF) | [Report.9.Norm.txt](Report.9.Norm.txt), [Report.9.Norm.sql](Report.9.Norm.sql) |

@@ -1,0 +1,263 @@
+===============================================================================
+ Report.9 - Database normalization
+ Information Systems [MI1.02a] - USTH 2026-2027
+ Mario D'Occhio
+===============================================================================
+
+Rules used (from the lecture)
+  1NF  every column holds an atomic value, no repeated columns / groups,
+       rows identified by a primary key
+  2NF  1NF + every non-key column depends on the WHOLE primary key
+       (no partial dependency on a part of a composite key)
+  3NF  2NF + no transitive dependency: a non-key column must not depend on
+       another non-key column (key -> A -> B)
+
+
+===============================================================================
+ 1. Which normal form does the employees database satisfy?
+===============================================================================
+
+ The employees database is in 3NF.
+
+
+===============================================================================
+ 2. Why?
+===============================================================================
+
+ Table by table (PK = primary key, -> = "determines"):
+
+ employees (emp_no, birth_date, first_name, last_name, gender, hire_date)
+   PK emp_no (single column)
+   emp_no -> birth_date, first_name, last_name, gender, hire_date
+   - all values atomic                                         1NF ok
+   - single-column key, so no partial dependency possible      2NF ok
+   - no column determines another one (two employees can have
+     the same last name, birth date, ... )                     3NF ok
+
+ departments (dept_no, dept_name)
+   PK dept_no, dept_name UNIQUE
+   only one non-key column                                     3NF ok
+
+ dept_emp (emp_no, dept_no, from_date, to_date)
+   PK (emp_no, dept_no)
+   (emp_no, dept_no) -> from_date, to_date
+   the dates describe that employee IN that department: they depend on
+   both parts of the key, not on emp_no alone or dept_no alone   2NF ok
+   from_date does not determine to_date (or vice versa)          3NF ok
+
+ dept_manager (emp_no, dept_no, from_date, to_date)
+   PK (emp_no, dept_no), same reasoning as dept_emp              3NF ok
+
+ titles (emp_no, title, from_date, to_date)
+   PK (emp_no, title, from_date)
+   (emp_no, title, from_date) -> to_date                         3NF ok
+
+ salaries (emp_no, salary, from_date, to_date)
+   PK (emp_no, from_date)
+   (emp_no, from_date) -> salary, to_date
+   the salary depends on the employee AND the period             3NF ok
+
+ No data is stored twice: a name is only in employees, a department name
+ only in departments; the other tables refer to them with foreign keys
+ (emp_no, dept_no). The views current_dept_emp and dept_emp_latest_date are
+ computed from dept_emp, they are not stored data.
+
+                           +----------------+
+                           |   employees    |
+                           | emp_no      PK |
+                           +----------------+
+                                   | 1
+          +-------------+----------+----------+---------------+
+          | n           | n                   | n             | n
+   +-------------+ +-----------+     +-------------+  +--------------+
+   |  salaries   | |  titles   |     |  dept_emp   |  | dept_manager |
+   | emp_no   FK | | emp_no FK |     | emp_no   FK |  | emp_no    FK |
+   | from_date   | | title     |     | dept_no  FK |  | dept_no   FK |
+   | salary      | | from_date |     | from_date   |  | from_date    |
+   | to_date     | | to_date   |     | to_date     |  | to_date      |
+   +-------------+ +-----------+     +-------------+  +--------------+
+                                            | n               | n
+                                            +--------+--------+
+                                                     | 1
+                                            +----------------+
+                                            |  departments   |
+                                            | dept_no     PK |
+                                            | dept_name      |
+                                            +----------------+
+
+ Remark: it is even in BCNF (every determinant is a candidate key).
+ One design limit that is NOT a normal form problem: since the key of
+ dept_emp is (emp_no, dept_no), an employee who leaves a department and
+ comes back later cannot get a second row for it.
+
+
+===============================================================================
+ 3. 3NF of the Order Form
+===============================================================================
+
+ The document
+ ------------
+   Order number      on7126
+   Order date        11/07/2016
+   Customer name     Tran Giang Son
+   Customer phone    +84-4 37 91 69 60
+   Customer address  18 Hoang Quoc Viet
+   City              Hanoi, Vietnam
+   +--------+--------------------------+----------+-------+
+   | ProdId | Description              | Quantity | Price |
+   +--------+--------------------------+----------+-------+
+   | P101   | Intel i7 6700K           |        1 |  $349 |
+   | P102   | ASUS Z170A-P             |        1 |  $149 |
+   | P103   | Corsair DDR4 4 x 8GB     |        1 |  $469 |
+   | P104   | Samsung EVO 850 512GB    |        1 |  $249 |
+   | P105   | GeForce GTX 1080 8G      |        1 |  $725 |
+   | P106   | Corsair CS750M 80+ Gold  |        1 |  $119 |
+   | P107   | Corsair Carbide 400R Mid |        1 |   $85 |
+   +--------+--------------------------+----------+-------+
+
+ Step 0 - Unnormalized form (UNF)
+ --------------------------------
+   OrderForm (OrderID, OrderDate, Name, Phone, Address, City,
+              { ProdID, Description, Quantity, Price } )
+
+   { ... } is a repeating group: one order has many product lines.
+
+ Step 1 - First normal form (1NF)
+ --------------------------------
+   Remove the repeating group: one row per product line, every value atomic.
+   The key becomes (OrderID, ProdID).
+
+   OrderForm_1NF (OrderID, ProdID, OrderDate, Name, Phone, Address, City,
+                  Description, Quantity, Price)
+
+   +---------+--------+------------+----------------+-----+--------------------------+-----+-------+
+   | OrderID | ProdID | OrderDate  | Name           | ... | Description              | Qty | Price |
+   +---------+--------+------------+----------------+-----+--------------------------+-----+-------+
+   | on7126  | P101   | 2016-07-11 | Tran Giang Son | ... | Intel i7 6700K           |   1 |   349 |
+   | on7126  | P102   | 2016-07-11 | Tran Giang Son | ... | ASUS Z170A-P             |   1 |   149 |
+   | on7126  | P103   | 2016-07-11 | Tran Giang Son | ... | Corsair DDR4 4 x 8GB     |   1 |   469 |
+   |   ...   |  ...   |    ...     |      ...       | ... |           ...            | ... |  ...  |
+   +---------+--------+------------+----------------+-----+--------------------------+-----+-------+
+
+   Problem: the order date and all the customer data are repeated 7 times.
+
+ Step 2 - Second normal form (2NF)
+ ---------------------------------
+   Dependencies in OrderForm_1NF:
+      OrderID          -> OrderDate, Name, Phone, Address, City   (partial)
+      ProdID           -> Description, Price                      (partial)
+      (OrderID,ProdID) -> Quantity                                (full)
+
+   Every partial dependency becomes its own table:
+
+   Order_2NF        (OrderID, OrderDate, Name, Phone, Address, City)
+   Product          (ProdID, Description, Price)
+   OrderProductList (OrderID, ProdID, Quantity)
+
+ Step 3 - Third normal form (3NF)
+ --------------------------------
+   In Order_2NF the customer data depends on the customer, not on the order:
+      OrderID -> Customer -> Name, Phone, Address, City      (transitive)
+   A customer who places 10 orders would have the phone and address stored
+   10 times. The customer becomes a table with its own key CustID (the form
+   has no customer number, so a new identifier is added), and Order keeps
+   only the foreign key.
+
+   Final 3NF schema (PK in [ ], FK marked with *):
+
+   Customer         ([CustID], Name, Phone, Address, City)
+   Order            ([OrderID], OrderDate, CustID*)
+   Product          ([ProdID], Description, Price)
+   OrderProductList ([OrderID*, ProdID*], Quantity)
+
+   Check:
+   - Customer: every column depends only on CustID               3NF
+   - Order: OrderDate, CustID depend only on OrderID              3NF
+   - Product: Description, Price depend only on ProdID            3NF
+   - OrderProductList: Quantity depends on the whole key          3NF
+
+ Diagram
+ -------
+   +--------------+         +---------------+
+   |   Customer   |         |     Order     |
+   |--------------|  1    n |---------------|
+   | CustID    PK |---------| OrderID    PK |
+   | Name         |         | OrderDate     |
+   | Phone        |         | CustID     FK |
+   | Address      |         +---------------+
+   | City         |                 | 1
+   +--------------+                 |
+                                    | n
+   +--------------+         +--------------------+
+   |   Product    |         |  OrderProductList  |
+   |--------------|  1    n |--------------------|
+   | ProdID    PK |---------| OrderID    PK, FK  |
+   | Description  |         | ProdID     PK, FK  |
+   | Price        |         | Quantity           |
+   +--------------+         +--------------------+
+
+   Order and Product have a many-to-many relationship (an order contains
+   many products, a product appears in many orders); OrderProductList is
+   the table that implements it.
+
+ The data in 3NF
+ ---------------
+   Customer
+   +--------+----------------+-------------------+--------------------+----------------+
+   | CustID | Name           | Phone             | Address            | City           |
+   +--------+----------------+-------------------+--------------------+----------------+
+   |      1 | Tran Giang Son | +84-4 37 91 69 60 | 18 Hoang Quoc Viet | Hanoi, Vietnam |
+   +--------+----------------+-------------------+--------------------+----------------+
+
+   Order
+   +---------+------------+--------+
+   | OrderID | OrderDate  | CustID |
+   +---------+------------+--------+
+   | on7126  | 2016-07-11 |      1 |
+   +---------+------------+--------+
+
+   Product                                       OrderProductList
+   +--------+--------------------------+-------+  +---------+--------+----------+
+   | ProdID | Description              | Price |  | OrderID | ProdID | Quantity |
+   +--------+--------------------------+-------+  +---------+--------+----------+
+   | P101   | Intel i7 6700K           |   349 |  | on7126  | P101   |        1 |
+   | P102   | ASUS Z170A-P             |   149 |  | on7126  | P102   |        1 |
+   | P103   | Corsair DDR4 4 x 8GB     |   469 |  | on7126  | P103   |        1 |
+   | P104   | Samsung EVO 850 512GB    |   249 |  | on7126  | P104   |        1 |
+   | P105   | GeForce GTX 1080 8G      |   725 |  | on7126  | P105   |        1 |
+   | P106   | Corsair CS750M 80+ Gold  |   119 |  | on7126  | P106   |        1 |
+   | P107   | Corsair Carbide 400R Mid |    85 |  | on7126  | P107   |        1 |
+   +--------+--------------------------+-------+  +---------+--------+----------+
+
+ SQL
+ ---
+   The CREATE TABLE / INSERT commands are in Report.9.Norm.sql (tested on
+   MySQL 8). ORDER is a reserved word, so the table is written `Order`
+   with backticks. The original form is rebuilt with joins:
+
+   mysql> SELECT l.ProdID, p.Description, l.Quantity, p.Price
+       -> FROM OrderProductList l JOIN Product p ON p.ProdID = l.ProdID
+       -> WHERE l.OrderID = 'on7126' ORDER BY l.ProdID;
+   +--------+--------------------------+----------+--------+
+   | ProdID | Description              | Quantity | Price  |
+   +--------+--------------------------+----------+--------+
+   | P101   | Intel i7 6700K           |        1 | 349.00 |
+   | P102   | ASUS Z170A-P             |        1 | 149.00 |
+   | P103   | Corsair DDR4 4 x 8GB     |        1 | 469.00 |
+   | P104   | Samsung EVO 850 512GB    |        1 | 249.00 |
+   | P105   | GeForce GTX 1080 8G      |        1 | 725.00 |
+   | P106   | Corsair CS750M 80+ Gold  |        1 | 119.00 |
+   | P107   | Corsair Carbide 400R Mid |        1 |  85.00 |
+   +--------+--------------------------+----------+--------+
+
+   mysql> SELECT SUM(l.Quantity * p.Price) AS order_total ... ;
+   +-------------+
+   | order_total |
+   +-------------+
+   |     2145.00 |
+   +-------------+
+
+   The total is not stored anywhere: it can be computed from the other
+   columns, so storing it would be redundant.
+
+   Assumption: the date 11/07/2016 is read as day/month/year (11 July 2016).
