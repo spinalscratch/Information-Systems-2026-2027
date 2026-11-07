@@ -20,9 +20,7 @@ $ brew services start mysql
 ==> Successfully started `mysql` (label: homebrew.mxcl.mysql)
 
 $ mysql --version
-mysql  Ver 9.x.x for macos on arm64 (Homebrew)        <-- exact version may differ
-
-Set a password for the root user (answer the questions of the wizard):
+mysql  Ver 9.x.x for macos on arm64 (Homebrew)
 
 $ mysql_secure_installation
 
@@ -249,14 +247,3 @@ mysql> SELECT COUNT(*) FROM salaries;
 
 mysql> exit
 Bye
-
-
--------------------------------------------------------------------------------
- 5. Notes
--------------------------------------------------------------------------------
-
-- On macOS with Homebrew the server runs as a background service
-  (brew services start/stop mysql); no sudo is needed.
-- The README of test_db lists test_employees_md5.sql as the usual check, but
-  MD5() was removed in MySQL 9.6, so test_employees_sha2.sql is used here.
-- The database is used in the following labworks (Labwork 2, 3, 4).
