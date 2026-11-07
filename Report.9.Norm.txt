@@ -1,10 +1,10 @@
 Report.9 - Normalization
 Mario D'Occhio - 2640030
 
-   Customer(CustID, Name, Phone, Address, City)
-   Order(OrderID, OrderDate, CustID)
-   Product(ProdID, Description, Price)
-   OrderProductList(OrderID, ProdID, Quantity)
+Customer(CustID, Name, Phone, Address, City)
+Order(OrderID, OrderDate, CustID)
+Product(ProdID, Description, Price)
+OrderProductList(OrderID, ProdID, Quantity)
 
    +----------+       +-----------+       +------------------+       +-------------+
    | Customer |1     n|   Order   |1     n| OrderProductList |n     1|   Product   |
