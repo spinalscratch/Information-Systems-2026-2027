@@ -1,0 +1,116 @@
+Report.10 - DB Design: Magazines
+Mario D'Occhio - 2640030
+
+
+1. Conceptual model
+
+   Entities: Magazine, Article, Author
+   - a magazine contains many articles, an article is in one magazine (1-n)
+   - an article has many authors, an author writes many articles (n-n)
+   - for each article-author pair we store the order of the author
+
+
+2. Logical model
+
+   Magazine(MagazineID, Title, ISSN, Number, Year)
+   Article(Title, PageBegin, PageEnd, MagazineID)
+   Author(AuthorID, Name, Email, Ascription)
+   ArticleAuthors(ArticleTitle, AuthorID, OrderAuthor)
+
+   - Article.Title is the key (no two articles have the same title)
+   - the n-n relationship becomes the table ArticleAuthors,
+     key (ArticleTitle, AuthorID), with the order of the author
+
+   +------------+       +------------+       +----------------+       +------------+
+   |  Magazine  |1     n|  Article   |1     n| ArticleAuthors |n     1|   Author   |
+   |------------|-------|------------|-------|----------------|-------|------------|
+   | MagazineID |       | Title      |       | ArticleTitle   |       | AuthorID   |
+   | Title      |       | PageBegin  |       | AuthorID       |       | Name       |
+   | ISSN       |       | PageEnd    |       | OrderAuthor    |       | Email      |
+   | Number     |       | MagazineID |       +----------------+       | Ascription |
+   | Year       |       +------------+                                +------------+
+   +------------+
+
+
+3. Physical model (SQL)
+
+CREATE DATABASE magazines;
+USE magazines;
+
+CREATE TABLE Magazine (
+    MagazineID  VARCHAR(10)  NOT NULL,
+    Title       VARCHAR(100) NOT NULL,
+    ISSN        VARCHAR(9)   NOT NULL,
+    Number      INT          NOT NULL,
+    Year        INT          NOT NULL,
+    PRIMARY KEY (MagazineID)
+);
+
+CREATE TABLE Article (
+    Title       VARCHAR(200) NOT NULL,
+    PageBegin   INT          NOT NULL,
+    PageEnd     INT          NOT NULL,
+    MagazineID  VARCHAR(10)  NOT NULL,
+    PRIMARY KEY (Title),
+    FOREIGN KEY (MagazineID) REFERENCES Magazine (MagazineID)
+);
+
+CREATE TABLE Author (
+    AuthorID     VARCHAR(10)  NOT NULL,
+    Name         VARCHAR(100) NOT NULL,
+    Email        VARCHAR(100),
+    Ascription   VARCHAR(100),
+    PRIMARY KEY (AuthorID)
+);
+
+CREATE TABLE ArticleAuthors (
+    ArticleTitle  VARCHAR(200) NOT NULL,
+    AuthorID      VARCHAR(10)  NOT NULL,
+    OrderAuthor   INT          NOT NULL,
+    PRIMARY KEY (ArticleTitle, AuthorID),
+    FOREIGN KEY (ArticleTitle) REFERENCES Article (Title),
+    FOREIGN KEY (AuthorID)     REFERENCES Author (AuthorID)
+);
+
+
+4. DESCRIBE
+
+mysql> DESCRIBE Magazine;
++------------+--------------+------+-----+---------+-------+
+| Field      | Type         | Null | Key | Default | Extra |
++------------+--------------+------+-----+---------+-------+
+| MagazineID | varchar(10)  | NO   | PRI | NULL    |       |
+| Title      | varchar(100) | NO   |     | NULL    |       |
+| ISSN       | varchar(9)   | NO   |     | NULL    |       |
+| Number     | int          | NO   |     | NULL    |       |
+| Year       | int          | NO   |     | NULL    |       |
++------------+--------------+------+-----+---------+-------+
+
+mysql> DESCRIBE Article;
++------------+--------------+------+-----+---------+-------+
+| Field      | Type         | Null | Key | Default | Extra |
++------------+--------------+------+-----+---------+-------+
+| Title      | varchar(200) | NO   | PRI | NULL    |       |
+| PageBegin  | int          | NO   |     | NULL    |       |
+| PageEnd    | int          | NO   |     | NULL    |       |
+| MagazineID | varchar(10)  | NO   | MUL | NULL    |       |
++------------+--------------+------+-----+---------+-------+
+
+mysql> DESCRIBE Author;
++------------+--------------+------+-----+---------+-------+
+| Field      | Type         | Null | Key | Default | Extra |
++------------+--------------+------+-----+---------+-------+
+| AuthorID   | varchar(10)  | NO   | PRI | NULL    |       |
+| Name       | varchar(100) | NO   |     | NULL    |       |
+| Email      | varchar(100) | YES  |     | NULL    |       |
+| Ascription | varchar(100) | YES  |     | NULL    |       |
++------------+--------------+------+-----+---------+-------+
+
+mysql> DESCRIBE ArticleAuthors;
++--------------+--------------+------+-----+---------+-------+
+| Field        | Type         | Null | Key | Default | Extra |
++--------------+--------------+------+-----+---------+-------+
+| ArticleTitle | varchar(200) | NO   | PRI | NULL    |       |
+| AuthorID     | varchar(10)  | NO   | PRI | NULL    |       |
+| OrderAuthor  | int          | NO   |     | NULL    |       |
++--------------+--------------+------+-----+---------+-------+
