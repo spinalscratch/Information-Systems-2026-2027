@@ -2,19 +2,6 @@
  Report.4a - Labwork 4a: Built-in functions
  Information Systems [MI1.02a] - USTH 2026-2027
  Mario D'Occhio
-===============================================================================
-
-All the queries are also in Report.4a.Functions.sql:
-
-    $ mysql -u root -p -t employees < Report.4a.Functions.sql
-
-Functions used
-  AVG(), SUM(), MIN(), MAX()  aggregate functions: many rows -> one value
-  GROUP BY x                  one result row (one aggregate) per value of x
-  HAVING                      filters the GROUPS, after aggregation
-                              (WHERE filters single rows, before grouping)
-  ORDER BY ... DESC           sort from highest to lowest
-
 
 -------------------------------------------------------------------------------
 Q1. What is the average salary of each employee?
