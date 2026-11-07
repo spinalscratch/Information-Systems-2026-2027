@@ -2,27 +2,6 @@
  Report.3 - Labwork 3: SQL on the employees database
  Information Systems [MI1.02a] - USTH 2026-2027
  Mario D'Occhio
-===============================================================================
-
-All the queries are also in Report.3.SQL.sql and can be run with
-
-    $ mysql -u root -p -t employees < Report.3.SQL.sql
-
-or one by one from the mysql client:
-
-    $ mysql -u root -p employees
-    mysql> ...
-
-Remark: dept_emp, dept_manager and salaries keep the whole HISTORY (from_date,
-to_date; to_date = '9999-01-01' means "still now"). "Working in department X"
-is interpreted as "has worked in X". To get only current employees add
-    AND de.to_date = '9999-01-01'
-Because one person can appear in several history rows, SELECT DISTINCT is used
-where we want each name once (like π in relational algebra).
-
-Real department names in the database: Customer Service, Development, Finance,
-Human Resources, Marketing, Production, Quality Management, Research, Sales.
-
 
 ===============================================================================
  Part 1 - SQL versions of the relational algebra queries of Labwork 2
