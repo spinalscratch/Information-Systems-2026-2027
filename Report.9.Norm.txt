@@ -1,42 +1,6 @@
 Report.9 - Normalization
 Mario D'Occhio - 2640030
 
-
-1. Which normal form does the employees database satisfy?
-
-   3NF.
-
-
-2. Why?
-
-   - 1NF: every column holds one atomic value and every table has a
-     primary key.
-   - 2NF: every non-key column depends on the whole key. For example in
-     dept_emp (emp_no, dept_no, from_date, to_date) the dates depend on
-     the employee AND the department together.
-   - 3NF: no non-key column depends on another non-key column. Names are
-     stored only in employees, department names only in departments; the
-     other tables just use emp_no and dept_no as foreign keys.
-
-
-3. Order Form in 3NF
-
-   UNF:  Order(OrderID, OrderDate, Name, Phone, Address, City,
-               {ProdID, Description, Quantity, Price})
-
-   1NF:  remove the repeating product list -> one row per product,
-         key (OrderID, ProdID)
-
-   2NF:  remove partial dependencies
-           OrderID -> OrderDate, customer data
-           ProdID  -> Description, Price
-           (OrderID, ProdID) -> Quantity
-
-   3NF:  remove the transitive dependency
-           OrderID -> CustID -> Name, Phone, Address, City
-
-   Result:
-
    Customer(CustID, Name, Phone, Address, City)
    Order(OrderID, OrderDate, CustID)
    Product(ProdID, Description, Price)
