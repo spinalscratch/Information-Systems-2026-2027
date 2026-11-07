@@ -13,23 +13,6 @@ Schema
   titles       (emp_no, title, from_date, to_date)
   salaries     (emp_no, salary, from_date, to_date)
 
-Notation
---------
-  σ  selection      σ condition (R)
-  π  projection     π a1,a2,... (R)
-  ⋈  natural join   R ⋈ S   (joins on ALL attributes with the same name)
-  ρ  rename         ρ S(b1,b2,...) (R)
-  ∧  and,  ≠  not equal,  ←  assignment of an intermediate result
-
-Important remark about ⋈
-  dept_emp, dept_manager, titles and salaries ALL have from_date and to_date.
-  A natural join between two of them would also force the dates to be equal,
-  which is not what we want. So, before joining them, we project away the
-  dates (e.g. π emp_no,dept_no (dept_emp)).
-  employees and departments have no common attributes with the dates, so
-  they can be joined directly.
-
-
 -------------------------------------------------------------------------------
 Q1. All info of all employees
 -------------------------------------------------------------------------------
