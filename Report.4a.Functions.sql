@@ -1,7 +1,3 @@
--- =====================================================================
--- Labwork 4a - Built-in (aggregate) functions on the "employees" database
--- Run with:   mysql -u root -p -t employees < Report.4a.Functions.sql
--- =====================================================================
 USE employees;
 
 -- Q1. What is the average salary of each employee?
