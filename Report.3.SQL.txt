@@ -1,0 +1,332 @@
+===============================================================================
+ Report.3 - Labwork 3: SQL on the employees database
+ Information Systems [MI1.02a] - USTH 2026-2027
+ Mario D'Occhio
+===============================================================================
+
+All the queries are also in Report.3.SQL.sql and can be run with
+
+    $ mysql -u root -p -t employees < Report.3.SQL.sql
+
+or one by one from the mysql client:
+
+    $ mysql -u root -p employees
+    mysql> ...
+
+Remark: dept_emp, dept_manager and salaries keep the whole HISTORY (from_date,
+to_date; to_date = '9999-01-01' means "still now"). "Working in department X"
+is interpreted as "has worked in X". To get only current employees add
+    AND de.to_date = '9999-01-01'
+Because one person can appear in several history rows, SELECT DISTINCT is used
+where we want each name once (like π in relational algebra).
+
+Real department names in the database: Customer Service, Development, Finance,
+Human Resources, Marketing, Production, Quality Management, Research, Sales.
+
+
+===============================================================================
+ Part 1 - SQL versions of the relational algebra queries of Labwork 2
+===============================================================================
+
+Q1. All info of all employees                              (RA: employees)
+
+    SELECT * FROM employees;
+
+    -> 300024 rows in set
+
+Q2. All info of all departments                            (RA: departments)
+
+    SELECT * FROM departments;
+
+    +---------+--------------------+
+    | dept_no | dept_name          |
+    +---------+--------------------+
+    | d009    | Customer Service   |
+    | d005    | Development        |
+    | d002    | Finance            |
+    | d003    | Human Resources    |
+    | d001    | Marketing          |
+    | d004    | Production         |
+    | d006    | Quality Management |
+    | d008    | Research           |
+    | d007    | Sales              |
+    +---------+--------------------+
+    9 rows in set
+
+Q3. Full names of all employees              (RA: π first_name,last_name (employees))
+
+    SELECT first_name, last_name FROM employees;
+
+    -> 300024 rows in set
+       (with SELECT DISTINCT: 279408 rows, because some employees share the
+        same first AND last name)
+
+Q4. Names of all departments                       (RA: π dept_name (departments))
+
+    SELECT dept_name FROM departments;
+
+    +--------------------+
+    | dept_name          |
+    +--------------------+
+    | Customer Service   |
+    | Development        |
+    | Finance            |
+    | Human Resources    |
+    | Marketing          |
+    | Production         |
+    | Quality Management |
+    | Research           |
+    | Sales              |
+    +--------------------+
+    9 rows in set
+
+
+===============================================================================
+ Part 2 - Queries with joins
+===============================================================================
+
+Q5. Full names of employees working in the "Sales" department
+
+    SELECT DISTINCT e.first_name, e.last_name
+    FROM employees e
+    JOIN dept_emp de    ON de.emp_no = e.emp_no
+    JOIN departments d  ON d.dept_no = de.dept_no
+    WHERE d.dept_name = 'Sales';
+
+    -> 51554 rows in set   (52245 different employees have worked in Sales)
+
+Q6. Full names of male employees working in the "Finance" department
+
+    SELECT DISTINCT e.first_name, e.last_name
+    FROM employees e
+    JOIN dept_emp de    ON de.emp_no = e.emp_no
+    JOIN departments d  ON d.dept_no = de.dept_no
+    WHERE d.dept_name = 'Finance'
+      AND e.gender = 'M';
+
+    -> 10306 rows in set
+
+Q7. Salaries of female employees working in the "Marketing" department
+
+    SELECT e.emp_no, e.first_name, e.last_name, s.salary, s.from_date, s.to_date
+    FROM employees e
+    JOIN dept_emp de    ON de.emp_no = e.emp_no
+    JOIN departments d  ON d.dept_no = de.dept_no
+    JOIN salaries s     ON s.emp_no  = e.emp_no
+    WHERE d.dept_name = 'Marketing'
+      AND e.gender = 'F';
+
+    -> 74996 rows in set   (one row per salary period)
+
+Q8. Full names of employees who have the same last name as their manager
+
+    SELECT DISTINCT e.first_name, e.last_name
+    FROM employees e
+    JOIN dept_emp de      ON de.emp_no  = e.emp_no
+    JOIN dept_manager dm  ON dm.dept_no = de.dept_no
+    JOIN employees m      ON m.emp_no   = dm.emp_no
+    WHERE e.last_name = m.last_name
+      AND e.emp_no <> m.emp_no;
+
+    -> 542 rows in set
+
+    The employees table is joined twice: once as "e" (the employee) and once
+    as "m" (the manager of the employee's department). e.emp_no <> m.emp_no
+    removes the managers themselves. Examples from the result:
+
+      Abdelghani Hagimont   (Development, manager DeForest Hagimont)
+      Adam Alpin            (Finance,     manager Ebru Alpin)
+      Adil Kieras           (Production,  manager Shem Kieras)
+
+    The managers with the most namesakes are DeForest Hagimont (Development,
+    61 employees), Krassimir Wegerle (Production, 53) and Shem Kieras
+    (Production, 52).
+
+Q9. Full names of managers who have been doing the job at least twice
+
+    SELECT e.first_name, e.last_name, COUNT(*) AS times_manager
+    FROM dept_manager dm
+    JOIN employees e ON e.emp_no = dm.emp_no
+    GROUP BY e.emp_no, e.first_name, e.last_name
+    HAVING COUNT(*) >= 2;
+
+    -> Empty set
+
+    The query is correct but in this database nobody has been a manager twice:
+    dept_manager has 24 rows for 24 different employees. (The primary key of
+    dept_manager is (emp_no, dept_no), so a person could be manager twice only
+    in two different departments, and this never happens in the data.)
+
+Q10. Full names of employees who were paid more than $100000
+
+    SELECT DISTINCT e.first_name, e.last_name
+    FROM employees e
+    JOIN salaries s ON s.emp_no = e.emp_no
+    WHERE s.salary > 100000;
+
+    -> 18925 rows in set   (19018 different employees; highest salary 158220)
+
+Q11. Names of all departments that have employees paid more than $100000
+
+    SELECT DISTINCT d.dept_name
+    FROM departments d
+    JOIN dept_emp de ON de.dept_no = d.dept_no
+    JOIN salaries s  ON s.emp_no   = de.emp_no
+    WHERE s.salary > 100000
+    ORDER BY d.dept_name;
+
+    +--------------------+
+    | dept_name          |
+    +--------------------+
+    | Customer Service   |
+    | Development        |
+    | Finance            |
+    | Human Resources    |
+    | Marketing          |
+    | Production         |
+    | Quality Management |
+    | Research           |
+    | Sales              |
+    +--------------------+
+    9 rows in set
+
+    Every department has at least one employee paid more than $100000.
+    (With $1000000, as written in the Labwork 2 slide, the result is empty.)
+
+
+===============================================================================
+ Part 3 - Merging departments
+===============================================================================
+
+    Development (d005) + Research (d008) -> Research and Development (d010)
+    Marketing   (d001) + Sales    (d007) -> Marketing and Sales      (d011)
+
+Why a simple UPDATE does not work
+---------------------------------
+The first idea is
+
+    UPDATE dept_emp SET dept_no = 'd010' WHERE dept_no IN ('d005', 'd008');
+
+but it fails with
+
+    ERROR 1062 (23000): Duplicate entry '...-d010' for key 'dept_emp.PRIMARY'
+
+because the primary key of dept_emp is (emp_no, dept_no) and many employees
+have worked in BOTH old departments (5234 people in Development and Research,
+3652 in Marketing and Sales). After the UPDATE they would have two rows
+(emp_no, 'd010').
+
+Solution
+--------
+For every employee of the old departments insert ONE row in the new
+department (from the earliest from_date to the latest to_date), then delete
+the old rows and the old departments. Everything is done in a transaction so
+that it is applied completely or not at all.
+
+    START TRANSACTION;
+
+    -- 1. new departments
+    INSERT INTO departments (dept_no, dept_name) VALUES
+        ('d010', 'Research and Development'),
+        ('d011', 'Marketing and Sales');
+
+    -- 2. employees
+    INSERT INTO dept_emp (emp_no, dept_no, from_date, to_date)
+    SELECT emp_no, 'd010', MIN(from_date), MAX(to_date)
+    FROM dept_emp
+    WHERE dept_no IN ('d005', 'd008')
+    GROUP BY emp_no;
+
+    INSERT INTO dept_emp (emp_no, dept_no, from_date, to_date)
+    SELECT emp_no, 'd011', MIN(from_date), MAX(to_date)
+    FROM dept_emp
+    WHERE dept_no IN ('d001', 'd007')
+    GROUP BY emp_no;
+
+    -- 3. managers
+    INSERT INTO dept_manager (emp_no, dept_no, from_date, to_date)
+    SELECT emp_no, 'd010', MIN(from_date), MAX(to_date)
+    FROM dept_manager
+    WHERE dept_no IN ('d005', 'd008')
+    GROUP BY emp_no;
+
+    INSERT INTO dept_manager (emp_no, dept_no, from_date, to_date)
+    SELECT emp_no, 'd011', MIN(from_date), MAX(to_date)
+    FROM dept_manager
+    WHERE dept_no IN ('d001', 'd007')
+    GROUP BY emp_no;
+
+    -- 4. remove the old rows and the old departments
+    DELETE FROM dept_emp     WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
+    DELETE FROM dept_manager WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
+    DELETE FROM departments  WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
+
+    COMMIT;
+
+(The foreign keys of dept_emp and dept_manager are ON DELETE CASCADE, so
+deleting the departments would also delete their rows automatically; the
+explicit DELETEs just make it clearer.)
+
+Check
+-----
+    mysql> SELECT * FROM departments ORDER BY dept_no;
+    +---------+--------------------------+
+    | dept_no | dept_name                |
+    +---------+--------------------------+
+    | d002    | Finance                  |
+    | d003    | Human Resources          |
+    | d004    | Production               |
+    | d006    | Quality Management       |
+    | d009    | Customer Service         |
+    | d010    | Research and Development |
+    | d011    | Marketing and Sales      |
+    +---------+--------------------------+
+    7 rows in set
+
+    mysql> SELECT dept_no, COUNT(*) AS employees
+        -> FROM dept_emp GROUP BY dept_no ORDER BY dept_no;
+    +---------+-----------+
+    | dept_no | employees |
+    +---------+-----------+
+    | d002    |     17346 |
+    | d003    |     17786 |
+    | d004    |     73485 |
+    | d006    |     20117 |
+    | d009    |     23580 |
+    | d010    |    101599 |
+    | d011    |     68804 |
+    +---------+-----------+
+    7 rows in set
+
+    d010: 85707 + 21126 = 106833 old rows -> 101599 (5234 people were in both)
+    d011: 20211 + 52245 =  72456 old rows ->  68804 (3652 people were in both)
+
+    mysql> SELECT dm.dept_no, e.first_name, e.last_name, dm.from_date, dm.to_date
+        -> FROM dept_manager dm JOIN employees e ON e.emp_no = dm.emp_no
+        -> WHERE dm.dept_no IN ('d010', 'd011')
+        -> ORDER BY dm.dept_no, dm.from_date, dm.emp_no;
+    +---------+-------------+------------+------------+------------+
+    | dept_no | first_name  | last_name  | from_date  | to_date    |
+    +---------+-------------+------------+------------+------------+
+    | d010    | DeForest    | Hagimont   | 1985-01-01 | 1992-04-25 |
+    | d010    | Arie        | Staelin    | 1985-01-01 | 1991-04-08 |
+    | d010    | Hilary      | Kambil     | 1991-04-08 | 9999-01-01 |
+    | d010    | Leon        | DasSarma   | 1992-04-25 | 9999-01-01 |
+    | d011    | Margareta   | Markovitch | 1985-01-01 | 1991-10-01 |
+    | d011    | Przemyslawa | Kaelbling  | 1985-01-01 | 1991-03-07 |
+    | d011    | Hauke       | Zhang      | 1991-03-07 | 9999-01-01 |
+    | d011    | Vishwani    | Minakawa   | 1991-10-01 | 9999-01-01 |
+    +---------+-------------+------------+------------+------------+
+    8 rows in set
+
+Limits of this solution
+-----------------------
+- Each merged department now has two current managers (to_date 9999-01-01).
+  The company must choose one and close the other, e.g.
+      UPDATE dept_manager SET to_date = CURDATE()
+      WHERE dept_no = 'd010' AND emp_no = <the one who leaves>;
+- An employee who moved Development -> other dept -> Research gets one
+  continuous period in d010; the gap is lost. To keep the full history one
+  would need a primary key that includes from_date.
+- The history of salaries and titles is not affected (those tables do not
+  reference departments).

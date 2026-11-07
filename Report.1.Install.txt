@@ -1,0 +1,262 @@
+===============================================================================
+ Report.1 - Labwork 1: Installing MySQL and the "employees" sample database
+ Information Systems [MI1.02a] - USTH 2026-2027
+ Mario D'Occhio
+===============================================================================
+
+Machine: MacBook Air M4 (Apple Silicon), macOS, package manager Homebrew.
+Goal:    install MySQL, clone https://github.com/datacharmer/test_db,
+         load the "employees" database and verify the installation.
+
+
+-------------------------------------------------------------------------------
+ 1. Install MySQL
+-------------------------------------------------------------------------------
+
+$ brew install mysql
+  (Homebrew download / installation log omitted)
+
+$ brew services start mysql
+==> Successfully started `mysql` (label: homebrew.mxcl.mysql)
+
+$ mysql --version
+mysql  Ver 9.x.x for macos on arm64 (Homebrew)        <-- exact version may differ
+
+Set a password for the root user (answer the questions of the wizard):
+
+$ mysql_secure_installation
+
+Check that the server answers:
+
+$ mysql -u root -p -e "SELECT VERSION();"
+Enter password:
++-----------+
+| VERSION() |
++-----------+
+| 9.x.x     |
++-----------+
+
+
+-------------------------------------------------------------------------------
+ 2. Clone the employees database from GitHub
+-------------------------------------------------------------------------------
+
+$ git clone https://github.com/datacharmer/test_db
+Cloning into 'test_db'...
+
+$ cd test_db
+$ ls
+Changelog                      load_dept_manager.dump  sakila
+README.md                      load_employees.dump     show_elapsed.sql
+employees.sql                  load_salaries1.dump     sql_test.sh
+employees_partitioned.sql      load_salaries2.dump     test_employees_md5.sql
+employees_partitioned_5.1.sql  load_salaries3.dump     test_employees_sha.sql
+images                         load_titles.dump        test_employees_sha2.sql
+load_departments.dump          objects.sql             test_versions.sh
+load_dept_emp.dump             postgresql
+
+employees.sql creates the database "employees" with 6 tables (employees,
+departments, dept_emp, dept_manager, titles, salaries) and 2 views
+(dept_emp_latest_date, current_dept_emp), then loads the data from the
+load_*.dump files with "source".
+
+
+-------------------------------------------------------------------------------
+ 3. Install (load) the database
+-------------------------------------------------------------------------------
+
+$ mysql -u root -p -t < employees.sql
+Enter password:
++-----------------------------+
+| INFO                        |
++-----------------------------+
+| CREATING DATABASE STRUCTURE |
++-----------------------------+
++------------------------+
+| INFO                   |
++------------------------+
+| storage engine: InnoDB |
++------------------------+
++---------------------+
+| INFO                |
++---------------------+
+| LOADING departments |
++---------------------+
++-------------------+
+| INFO              |
++-------------------+
+| LOADING employees |
++-------------------+
++------------------+
+| INFO             |
++------------------+
+| LOADING dept_emp |
++------------------+
++----------------------+
+| INFO                 |
++----------------------+
+| LOADING dept_manager |
++----------------------+
++----------------+
+| INFO           |
++----------------+
+| LOADING titles |
++----------------+
++------------------+
+| INFO             |
++------------------+
+| LOADING salaries |
++------------------+
++---------------------+
+| data_load_time_diff |
++---------------------+
+| 00:00:xx            |                                 <-- depends on the machine
++---------------------+
+
+
+-------------------------------------------------------------------------------
+ 4. Verify the database
+-------------------------------------------------------------------------------
+
+4.1 Integrity test provided by test_db
+    (MySQL 9.6+ removed MD5()/SHA(), so the SHA-256 test is the one that
+     works on every version)
+
+$ mysql -u root -p -t < test_employees_sha2.sql
+Enter password:
++----------------------+
+| INFO                 |
++----------------------+
+| TESTING INSTALLATION |
++----------------------+
++--------------+------------------+------------------------------------------------------------------+
+| table_name   | expected_records | expected_crc                                                     |
++--------------+------------------+------------------------------------------------------------------+
+| departments  |                9 | 377c5d727383a32633e2973f8e3411beffe29e2f4cc297c586fa6b24aa7df9ba |
+| dept_emp     |           331603 | 34548ee9989dd4d5e065168b43249c8d3eb48bfbbfb3f2fc1cf01be6658f6a75 |
+| dept_manager |               24 | 3a4e69723deec413a7d8a4f5ce55013830303fa617b6380ed2b0fd2d48b1c768 |
+| employees    |           300024 | 21f5d003842f24853e251d3d5116798bafe257ec3d1bb448b5365b68deaabbf4 |
+| salaries     |          2844047 | 4e99e691a9ea98fefc0b4fec8ca4e758baeefba2967bd8d6474810a9a5f6e729 |
+| titles       |           443308 | a9e940ef9ba1029a8f0356fdbe495430bedc59eec5ceb4f71e0cc35ddcbf9980 |
++--------------+------------------+------------------------------------------------------------------+
++--------------+---------------+------------------------------------------------------------------+
+| table_name   | found_records | found_crc                                                        |
++--------------+---------------+------------------------------------------------------------------+
+| departments  |             9 | 377c5d727383a32633e2973f8e3411beffe29e2f4cc297c586fa6b24aa7df9ba |
+| dept_emp     |        331603 | 34548ee9989dd4d5e065168b43249c8d3eb48bfbbfb3f2fc1cf01be6658f6a75 |
+| dept_manager |            24 | 3a4e69723deec413a7d8a4f5ce55013830303fa617b6380ed2b0fd2d48b1c768 |
+| employees    |        300024 | 21f5d003842f24853e251d3d5116798bafe257ec3d1bb448b5365b68deaabbf4 |
+| salaries     |       2844047 | 4e99e691a9ea98fefc0b4fec8ca4e758baeefba2967bd8d6474810a9a5f6e729 |
+| titles       |        443308 | a9e940ef9ba1029a8f0356fdbe495430bedc59eec5ceb4f71e0cc35ddcbf9980 |
++--------------+---------------+------------------------------------------------------------------+
++--------------+---------------+-----------+
+| table_name   | records_match | crc_match |
++--------------+---------------+-----------+
+| departments  | OK            | ok        |
+| dept_emp     | OK            | ok        |
+| dept_manager | OK            | ok        |
+| employees    | OK            | ok        |
+| salaries     | OK            | ok        |
+| titles       | OK            | ok        |
++--------------+---------------+-----------+
++------------------+
+| computation_time |
++------------------+
+| 00:00:0x         |                                    <-- depends on the machine
++------------------+
++---------+--------+
+| summary | result |
++---------+--------+
+| CRC     | OK     |
+| count   | OK     |
++---------+--------+
+
+All record counts and checksums match: the database is installed correctly.
+
+
+4.2 Manual checks from the mysql client
+
+$ mysql -u root -p employees
+
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| employees          |
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+
+mysql> SHOW TABLES;
++----------------------+
+| Tables_in_employees  |
++----------------------+
+| current_dept_emp     |
+| departments          |
+| dept_emp             |
+| dept_emp_latest_date |
+| dept_manager         |
+| employees            |
+| salaries             |
+| titles               |
++----------------------+
+8 rows in set
+
+mysql> DESCRIBE employees;
++------------+---------------+------+-----+---------+-------+
+| Field      | Type          | Null | Key | Default | Extra |
++------------+---------------+------+-----+---------+-------+
+| emp_no     | int           | NO   | PRI | NULL    |       |
+| birth_date | date          | NO   |     | NULL    |       |
+| first_name | varchar(14)   | NO   |     | NULL    |       |
+| last_name  | varchar(16)   | NO   |     | NULL    |       |
+| gender     | enum('M','F') | NO   |     | NULL    |       |
+| hire_date  | date          | NO   |     | NULL    |       |
++------------+---------------+------+-----+---------+-------+
+6 rows in set
+
+mysql> SELECT * FROM departments;
++---------+--------------------+
+| dept_no | dept_name          |
++---------+--------------------+
+| d009    | Customer Service   |
+| d005    | Development        |
+| d002    | Finance            |
+| d003    | Human Resources    |
+| d001    | Marketing          |
+| d004    | Production         |
+| d006    | Quality Management |
+| d008    | Research           |
+| d007    | Sales              |
++---------+--------------------+
+9 rows in set
+
+mysql> SELECT COUNT(*) FROM employees;
++----------+
+| COUNT(*) |
++----------+
+|   300024 |
++----------+
+
+mysql> SELECT COUNT(*) FROM salaries;
++----------+
+| COUNT(*) |
++----------+
+|  2844047 |
++----------+
+
+mysql> exit
+Bye
+
+
+-------------------------------------------------------------------------------
+ 5. Notes
+-------------------------------------------------------------------------------
+
+- On macOS with Homebrew the server runs as a background service
+  (brew services start/stop mysql); no sudo is needed.
+- The README of test_db lists test_employees_md5.sql as the usual check, but
+  MD5() was removed in MySQL 9.6, so test_employees_sha2.sql is used here.
+- The database is used in the following labworks (Labwork 2, 3, 4).

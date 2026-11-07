@@ -1,0 +1,142 @@
+===============================================================================
+ Report.2 - Labwork 2: Relational Algebra
+ Information Systems [MI1.02a] - USTH 2026-2027
+ Mario D'Occhio
+===============================================================================
+
+Schema
+------
+  employees    (emp_no, birth_date, first_name, last_name, gender)
+  departments  (dept_no, dept_name)
+  dept_emp     (emp_no, dept_no, from_date, to_date)
+  dept_manager (dept_no, emp_no, from_date, to_date)
+  titles       (emp_no, title, from_date, to_date)
+  salaries     (emp_no, salary, from_date, to_date)
+
+Notation
+--------
+  σ  selection      σ condition (R)
+  π  projection     π a1,a2,... (R)
+  ⋈  natural join   R ⋈ S   (joins on ALL attributes with the same name)
+  ρ  rename         ρ S(b1,b2,...) (R)
+  ∧  and,  ≠  not equal,  ←  assignment of an intermediate result
+
+Important remark about ⋈
+  dept_emp, dept_manager, titles and salaries ALL have from_date and to_date.
+  A natural join between two of them would also force the dates to be equal,
+  which is not what we want. So, before joining them, we project away the
+  dates (e.g. π emp_no,dept_no (dept_emp)).
+  employees and departments have no common attributes with the dates, so
+  they can be joined directly.
+
+
+-------------------------------------------------------------------------------
+Q1. All info of all employees
+-------------------------------------------------------------------------------
+      employees
+
+-------------------------------------------------------------------------------
+Q2. All info of all departments
+-------------------------------------------------------------------------------
+      departments
+
+-------------------------------------------------------------------------------
+Q3. Full names of all employees
+-------------------------------------------------------------------------------
+      π first_name, last_name (employees)
+
+-------------------------------------------------------------------------------
+Q4. Names of all departments
+-------------------------------------------------------------------------------
+      π dept_name (departments)
+
+-------------------------------------------------------------------------------
+Q5. Full names of employees working in the "ICT" department
+-------------------------------------------------------------------------------
+      π first_name, last_name (
+            employees ⋈ dept_emp ⋈ σ dept_name = 'ICT' (departments) )
+
+  (the selection is applied to departments before the join, so the joins
+   work on one department only instead of all of them)
+
+-------------------------------------------------------------------------------
+Q6. Full names of male employees working in the "BIO" department
+-------------------------------------------------------------------------------
+      π first_name, last_name (
+            σ gender = 'M' (employees)
+            ⋈ dept_emp
+            ⋈ σ dept_name = 'BIO' (departments) )
+
+-------------------------------------------------------------------------------
+Q7. Salaries of female employees working in the "WEO" department
+-------------------------------------------------------------------------------
+      F_WEO  ←  π emp_no (
+                    σ gender = 'F' (employees)
+                    ⋈ π emp_no, dept_no (dept_emp)
+                    ⋈ σ dept_name = 'WEO' (departments) )
+
+      Result ←  π emp_no, salary, from_date, to_date ( F_WEO ⋈ salaries )
+
+  Query tree:
+
+                 π emp_no, salary, from_date, to_date
+                                 |
+                                 ⋈
+                               /   \
+                       π emp_no     salaries
+                          |
+                          ⋈
+                        /   \
+                       ⋈     σ dept_name='WEO'
+                     /   \           |
+       σ gender='F'   π emp_no,   departments
+           |          dept_no
+       employees         |
+                      dept_emp
+
+-------------------------------------------------------------------------------
+Q8. Full names of employees who have the same last name as their manager
+-------------------------------------------------------------------------------
+  "Their manager" = a manager of a department the employee works in.
+
+      ED  ←  π emp_no, first_name, last_name, dept_no (
+                 employees ⋈ π emp_no, dept_no (dept_emp) )
+
+      MD  ←  ρ MD(mgr_no, mgr_last_name, dept_no) (
+                 π emp_no, last_name, dept_no (
+                     employees ⋈ π emp_no, dept_no (dept_manager) ) )
+
+      Result ← π first_name, last_name (
+                 σ last_name = mgr_last_name ∧ emp_no ≠ mgr_no ( ED ⋈ MD ) )
+
+  ED ⋈ MD joins only on dept_no (the renaming makes the other attribute
+  names different). emp_no ≠ mgr_no removes the managers themselves.
+
+-------------------------------------------------------------------------------
+Q9. Full names of employees who were paid more than $100000
+-------------------------------------------------------------------------------
+      π first_name, last_name (
+            employees ⋈ σ salary > 100000 (salaries) )
+
+-------------------------------------------------------------------------------
+Q10. Names of all departments that have employees paid more than $1000000
+-------------------------------------------------------------------------------
+      Rich   ←  π emp_no ( σ salary > 1000000 (salaries) )
+
+      Result ←  π dept_name (
+                    departments ⋈ π emp_no, dept_no (dept_emp) ⋈ Rich )
+
+  Note: the slide says $1000000 here and $100000 in the SQL labwork. In the
+  real employees data the highest salary is 158220, so with $1000000 the
+  result is empty; with $100000 it contains all 9 departments
+  (see Report.3.SQL.txt).
+
+
+-------------------------------------------------------------------------------
+Correspondence with SQL (tested in Labwork 3)
+-------------------------------------------------------------------------------
+  σ   ->  WHERE
+  π   ->  SELECT DISTINCT <columns>      (π removes duplicates, plain
+                                           SELECT does not)
+  ⋈   ->  JOIN ... ON <same-name columns>
+  ρ   ->  table / column aliases (AS)
