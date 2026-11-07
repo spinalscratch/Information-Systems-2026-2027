@@ -6,10 +6,6 @@ Mario D'Occhio - 2640030
    Author(AuthorID, Name, Email, Ascription)
    ArticleAuthors(ArticleTitle, AuthorID, OrderAuthor)
 
-   - Article.Title is the key (no two articles have the same title)
-   - the n-n relationship becomes the table ArticleAuthors,
-     key (ArticleTitle, AuthorID), with the order of the author
-
    +------------+       +------------+       +----------------+       +------------+
    |  Magazine  |1     n|  Article   |1     n| ArticleAuthors |n     1|   Author   |
    |------------|-------|------------|-------|----------------|-------|------------|
