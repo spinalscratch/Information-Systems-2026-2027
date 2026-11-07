@@ -1,0 +1,173 @@
+===============================================================================
+ Report.4a - Labwork 4a: Built-in functions
+ Information Systems [MI1.02a] - USTH 2026-2027
+ Mario D'Occhio
+===============================================================================
+
+All the queries are also in Report.4a.Functions.sql:
+
+    $ mysql -u root -p -t employees < Report.4a.Functions.sql
+
+Functions used
+  AVG(), SUM(), MIN(), MAX()  aggregate functions: many rows -> one value
+  GROUP BY x                  one result row (one aggregate) per value of x
+  HAVING                      filters the GROUPS, after aggregation
+                              (WHERE filters single rows, before grouping)
+  ORDER BY ... DESC           sort from highest to lowest
+
+
+-------------------------------------------------------------------------------
+Q1. What is the average salary of each employee?
+-------------------------------------------------------------------------------
+    SELECT emp_no, AVG(salary) AS avg_salary
+    FROM salaries
+    GROUP BY emp_no;
+
+    +--------+------------+
+    | emp_no | avg_salary |
+    +--------+------------+
+    |  10001 | 75388.9412 |
+    |  10002 | 68854.5000 |
+    |  10003 | 43030.2857 |
+    |  10004 | 56512.2500 |
+    |  10005 | 87275.7692 |
+    |    ... |        ... |
+    +--------+------------+
+    300024 rows in set
+
+    salaries has one row per salary period, so every employee appears many
+    times; GROUP BY emp_no gives one row per employee.
+
+-------------------------------------------------------------------------------
+Q2. How much was each employee paid in total?
+-------------------------------------------------------------------------------
+    SELECT emp_no, SUM(salary) AS total_paid
+    FROM salaries
+    GROUP BY emp_no;
+
+    +--------+------------+
+    | emp_no | total_paid |
+    +--------+------------+
+    |  10001 |    1281612 |
+    |  10002 |     413127 |
+    |  10003 |     301212 |
+    |  10004 |     904196 |
+    |  10005 |    1134585 |
+    |    ... |        ... |
+    +--------+------------+
+    300024 rows in set
+
+    (salary is a yearly amount, so this is the sum over the salary periods)
+
+-------------------------------------------------------------------------------
+Q3. Minimum, maximum and total salaries of each department?
+-------------------------------------------------------------------------------
+    SELECT d.dept_no, d.dept_name,
+           MIN(s.salary) AS min_salary,
+           MAX(s.salary) AS max_salary,
+           SUM(s.salary) AS dept_sum
+    FROM salaries s
+    JOIN dept_emp de   ON s.emp_no  = de.emp_no
+    JOIN departments d ON d.dept_no = de.dept_no
+    GROUP BY d.dept_no, d.dept_name;
+
+    +---------+--------------------+------------+------------+-------------+
+    | dept_no | dept_name          | min_salary | max_salary | dept_sum    |
+    +---------+--------------------+------------+------------+-------------+
+    | d001    | Marketing          |      39127 |     145128 | 13725425266 |
+    | d002    | Finance            |      38812 |     142395 | 11650834677 |
+    | d003    | Human Resources    |      38735 |     141953 |  9363811425 |
+    | d004    | Production         |      38623 |     138273 | 41554438942 |
+    | d005    | Development        |      38849 |     144434 | 48179456393 |
+    | d006    | Quality Management |      38786 |     132103 | 10865203635 |
+    | d007    | Sales              |      39169 |     158220 | 40030089342 |
+    | d008    | Research           |      38851 |     130211 | 11969730427 |
+    | d009    | Customer Service   |      38836 |     144866 | 13143639841 |
+    +---------+--------------------+------------+------------+-------------+
+    9 rows in set
+
+    Note: salaries and dept_emp are joined on emp_no only, so an employee who
+    changed department has all his/her salary periods counted in each of
+    his/her departments. Matching also the periods (salary dates inside the
+    dept_emp dates) would give an exact split.
+
+-------------------------------------------------------------------------------
+Q4. Which departments have paid more than 20 billion dollars for their employees?
+-------------------------------------------------------------------------------
+    SELECT d.dept_no, d.dept_name, SUM(s.salary) AS dept_sum
+    FROM salaries s
+    JOIN dept_emp de   ON s.emp_no  = de.emp_no
+    JOIN departments d ON d.dept_no = de.dept_no
+    GROUP BY d.dept_no, d.dept_name
+    HAVING dept_sum > 20000000000;
+
+    +---------+-------------+-------------+
+    | dept_no | dept_name   | dept_sum    |
+    +---------+-------------+-------------+
+    | d004    | Production  | 41554438942 |
+    | d005    | Development | 48179456393 |
+    | d007    | Sales       | 40030089342 |
+    +---------+-------------+-------------+
+    3 rows in set
+
+    The condition is on the SUM, which exists only after grouping, so it goes
+    in HAVING, not in WHERE.
+
+-------------------------------------------------------------------------------
+Q5. Total salaries of male employees in each department?
+-------------------------------------------------------------------------------
+    SELECT d.dept_no, d.dept_name, SUM(s.salary) AS dept_sum
+    FROM salaries s
+    JOIN employees e   ON e.emp_no  = s.emp_no
+    JOIN dept_emp de   ON s.emp_no  = de.emp_no
+    JOIN departments d ON d.dept_no = de.dept_no
+    WHERE e.gender = 'M'
+    GROUP BY d.dept_no, d.dept_name;
+
+    +---------+--------------------+-------------+
+    | dept_no | dept_name          | dept_sum    |
+    +---------+--------------------+-------------+
+    | d001    | Marketing          |  8352455367 |
+    | d002    | Finance            |  6940675318 |
+    | d003    | Human Resources    |  5619533959 |
+    | d004    | Production         | 24873889749 |
+    | d005    | Development        | 28961357095 |
+    | d006    | Quality Management |  6472073211 |
+    | d007    | Sales              | 24051537190 |
+    | d008    | Research           |  7174578852 |
+    | d009    | Customer Service   |  7865587983 |
+    +---------+--------------------+-------------+
+    9 rows in set
+
+    The gender is a property of each single row, so the filter goes in WHERE
+    (rows of female employees are removed before grouping).
+
+-------------------------------------------------------------------------------
+Q6. Total salaries of department managers for each department, from highest
+    to lowest?
+-------------------------------------------------------------------------------
+    SELECT d.dept_name, d.dept_no, SUM(s.salary) AS mngr_dep_sum
+    FROM salaries s
+    JOIN dept_manager dm ON dm.emp_no  = s.emp_no
+    JOIN departments d   ON d.dept_no  = dm.dept_no
+    GROUP BY d.dept_no, d.dept_name
+    ORDER BY mngr_dep_sum DESC;
+
+    +--------------------+---------+--------------+
+    | dept_name          | dept_no | mngr_dep_sum |
+    +--------------------+---------+--------------+
+    | Quality Management | d006    |      4162118 |
+    | Production         | d004    |      3374004 |
+    | Customer Service   | d009    |      3187661 |
+    | Marketing          | d001    |      3093009 |
+    | Sales              | d007    |      2915118 |
+    | Research           | d008    |      2558661 |
+    | Finance            | d002    |      2549372 |
+    | Human Resources    | d003    |      2098298 |
+    | Development        | d005    |      2028376 |
+    +--------------------+---------+--------------+
+    9 rows in set
+
+    dept_manager already tells which department each manager ran, so
+    dept_emp is not needed here (joining it would duplicate the salary rows
+    of a manager who worked in more than one department).
