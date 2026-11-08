@@ -60,23 +60,6 @@ Q7. Salaries of female employees working in the "WEO" department
 
       Result ←  π emp_no, salary, from_date, to_date ( F_WEO ⋈ salaries )
 
-  Query tree:
-
-                 π emp_no, salary, from_date, to_date
-                                 |
-                                 ⋈
-                               /   \
-                       π emp_no     salaries
-                          |
-                          ⋈
-                        /   \
-                       ⋈     σ dept_name='WEO'
-                     /   \           |
-       σ gender='F'   π emp_no,   departments
-           |          dept_no
-       employees         |
-                      dept_emp
-
 -------------------------------------------------------------------------------
 Q8. Full names of employees who have the same last name as their manager
 -------------------------------------------------------------------------------
@@ -108,18 +91,3 @@ Q10. Names of all departments that have employees paid more than $1000000
 
       Result ←  π dept_name (
                     departments ⋈ π emp_no, dept_no (dept_emp) ⋈ Rich )
-
-  Note: the slide says $1000000 here and $100000 in the SQL labwork. In the
-  real employees data the highest salary is 158220, so with $1000000 the
-  result is empty; with $100000 it contains all 9 departments
-  (see Report.3.SQL.txt).
-
-
--------------------------------------------------------------------------------
-Correspondence with SQL (tested in Labwork 3)
--------------------------------------------------------------------------------
-  σ   ->  WHERE
-  π   ->  SELECT DISTINCT <columns>      (π removes duplicates, plain
-                                           SELECT does not)
-  ⋈   ->  JOIN ... ON <same-name columns>
-  ρ   ->  table / column aliases (AS)
