@@ -1,19 +1,15 @@
 USE employees;
 
--- ---------------------------------------------------------------------
--- Part 1 - SQL versions of the Labwork 2 relational algebra expressions
--- ---------------------------------------------------------------------
-
--- Q1. All info of all employees                      ( employees )
+-- Q1. All info of all employees   
 SELECT * FROM employees;
 
--- Q2. All info of all departments                    ( departments )
+-- Q2. All info of all departments        
 SELECT * FROM departments;
 
--- Q3. Full names of all employees                    ( pi first_name,last_name (employees) )
+-- Q3. Full names of all employees                
 SELECT first_name, last_name FROM employees;
 
--- Q4. Names of all departments                       ( pi dept_name (departments) )
+-- Q4. Names of all departments               
 SELECT dept_name FROM departments;
 
 -- Q5. Full names of employees working in the "Sales" department
@@ -74,18 +70,7 @@ JOIN salaries s  ON s.emp_no   = de.emp_no
 WHERE s.salary > 100000
 ORDER BY d.dept_name;
 
--- ---------------------------------------------------------------------
--- Part 3 - merging departments
---   Development (d005) + Research (d008) -> Research and Development (d010)
---   Marketing   (d001) + Sales    (d007) -> Marketing and Sales      (d011)
---
--- A plain  UPDATE dept_emp SET dept_no='d010' WHERE dept_no IN ('d005','d008')
--- FAILS with "Duplicate entry" because the primary key of dept_emp is
--- (emp_no, dept_no) and many people worked in both old departments
--- (5234 for d005+d008, 3652 for d001+d007). So for every employee we
--- insert ONE row in the new department covering the whole period, then
--- delete the old rows.
--- ---------------------------------------------------------------------
+-- PART 3
 START TRANSACTION;
 
 -- 1. create the new departments
@@ -106,10 +91,7 @@ FROM dept_emp
 WHERE dept_no IN ('d001', 'd007')
 GROUP BY emp_no;
 
--- 3. move managers (no collisions here: each manager ran only one department).
---    Note: afterwards each merged department has TWO current managers
---    (to_date = 9999-01-01), one from each old department; the company has
---    to decide who stays and close the other one with an UPDATE of to_date.
+-- 3. move managers 
 INSERT INTO dept_manager (emp_no, dept_no, from_date, to_date)
 SELECT emp_no, 'd010', MIN(from_date), MAX(to_date)
 FROM dept_manager
@@ -123,8 +105,6 @@ WHERE dept_no IN ('d001', 'd007')
 GROUP BY emp_no;
 
 -- 4. remove the old departments' rows, then the departments themselves
---    (the foreign keys are ON DELETE CASCADE, so step 4c alone would also
---     clean dept_emp / dept_manager, but doing it explicitly is clearer)
 DELETE FROM dept_emp     WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
 DELETE FROM dept_manager WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
 DELETE FROM departments  WHERE dept_no IN ('d001', 'd005', 'd007', 'd008');
