@@ -1,8 +1,3 @@
--- =====================================================================
--- Labwork 4c - Views on the "employees" database
--- (same queries as Labwork 4b, written with views)
--- Run with:   mysql -u root -p -t employees < Report.4c.Views.sql
--- =====================================================================
 USE employees;
 
 -- Q1. Who have the same name as the managers of the "Finance" department?
