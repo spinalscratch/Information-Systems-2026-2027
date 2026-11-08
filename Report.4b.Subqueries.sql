@@ -1,7 +1,3 @@
--- =====================================================================
--- Labwork 4b - Subqueries on the "employees" database
--- Run with:   mysql -u root -p -t employees < Report.4b.Subqueries.sql
--- =====================================================================
 USE employees;
 
 -- Q1. Who have the same name as the managers of the "Finance" department?
